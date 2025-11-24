@@ -33,7 +33,7 @@ A modern, elegant desktop application for downloading videos from YouTube and ot
 1. **Clone the repository**
    ```bash
    git clone https://github.com/LokaiRipon/velvet-downloader.git
-   cd velvet-down
+   cd velvet-downloader
    ```
 
 2. **Install dependencies**
