@@ -18,8 +18,9 @@ class VelvetDownApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Velvet Down - Professional Media Downloader")
-        self.setGeometry(150, 100, 750, 600)
+        self.setGeometry(150, 100, 600, 600)
         self.setMinimumSize(650, 500)
+        self.setMaximumSize(800, 800)
         
         # ✅ Set window icon for title bar and taskbar
         self._set_window_icon()
