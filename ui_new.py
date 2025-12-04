@@ -1,4 +1,5 @@
 # ui_new.py
+import logging
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QScrollArea, QTabWidget,
     QGridLayout, QFrame, QSizePolicy
@@ -6,7 +7,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFontMetrics
 
+logger = logging.getLogger(__name__)
+
+
 class ModernFormatItem(QFrame):
+    """Individual format card with click support"""
     clicked = pyqtSignal(dict)
 
     def __init__(self, format_data, format_type="video"):
@@ -67,22 +72,27 @@ class ModernFormatItem(QFrame):
         layout.addWidget(info)
 
     def _elide_text(self, label: QLabel, text: str) -> str:
+        """Truncate text with ellipsis if too long"""
         fm = QFontMetrics(label.font())
         available = max(80, self.width() - 16)
         return fm.elidedText(text, Qt.TextElideMode.ElideRight, available)
 
     def mousePressEvent(self, event):
+        """Handle format selection"""
         if event.button() == Qt.MouseButton.LeftButton:
+            logger.debug(f"Format selected: {self.format_data.get('format_code')}")
             self.clicked.emit(self.format_data)
         super().mousePressEvent(event)
 
 
 class ModernFormatGrid(QWidget):
+    """Main format selection UI with tabs for video/audio"""
     format_selected = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent  # type: ignore
+        logger.debug("Initializing ModernFormatGrid")
         self.setup_ui()
 
     def setup_ui(self):
@@ -90,12 +100,13 @@ class ModernFormatGrid(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(10)
 
-        # Loading label
+        # Loading/Error label
         self.loading_label = QLabel("")
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loading_label.setStyleSheet("color: #888888; font-size: 11px;")
         root.addWidget(self.loading_label)
 
-        # Tabs
+        # Tabs for Video/Audio
         self.tabs = QTabWidget()
         self.tabs.setStyleSheet("""
             QTabBar::tab {
@@ -141,16 +152,22 @@ class ModernFormatGrid(QWidget):
         self.tabs.hide()
 
     def show_loading(self):
+        """Display loading state"""
         self.loading_label.setText("🔄 Fetching available formats...")
         self.loading_label.show()
         self.tabs.hide()
+        logger.debug("Showing loading state")
 
     def show_error(self, message):
-        self.loading_label.setText(f"❌ {message}")
+        """Display error state with user-friendly message"""
+        self.loading_label.setText(message)
         self.loading_label.show()
         self.tabs.hide()
+        logger.warning(f"Showing error: {message}")
 
     def show_formats(self, video_formats, audio_formats):
+        """Display available formats in tabs"""
+        logger.info(f"Displaying {len(video_formats)} video and {len(audio_formats)} audio formats")
         self.loading_label.hide()
         self.tabs.show()
 
@@ -168,8 +185,9 @@ class ModernFormatGrid(QWidget):
                 item = ModernFormatItem(fmt, "video")
                 item.clicked.connect(self.on_format_selected)
                 self.video_layout.addWidget(item, i // 2, i % 2)
+                logger.debug(f"Added video format: {fmt.get('resolution')}")
         else:
-            empty = QLabel("No video formats available.")
+            empty = QLabel("❌ No video formats available.")
             empty.setStyleSheet("color: #CCCCCC;")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.video_layout.addWidget(empty, 0, 0)
@@ -180,13 +198,14 @@ class ModernFormatGrid(QWidget):
                 item = ModernFormatItem(fmt, "audio")
                 item.clicked.connect(self.on_format_selected)
                 self.audio_layout.addWidget(item, i // 2, i % 2)
+                logger.debug(f"Added audio format: {fmt.get('ext')}")
         else:
-            empty = QLabel("No audio formats available.")
+            empty = QLabel("❌ No audio formats available.")
             empty.setStyleSheet("color: #CCCCCC;")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.audio_layout.addWidget(empty, 0, 0)
 
-        # Keep grid visually open
+        # Keep grid visually open with stretch
         self.video_layout.setRowStretch((len(video_formats) + 2) // 2, 1)
         self.audio_layout.setRowStretch((len(audio_formats) + 2) // 2, 1)
 
@@ -195,6 +214,8 @@ class ModernFormatGrid(QWidget):
         self.audio_widget.update()
 
     def on_format_selected(self, format_data):
+        """Handle format selection and trigger download"""
+        logger.info(f"Format selected: {format_data.get('format_code')} ({format_data.get('ext')})")
         if hasattr(self.parent, "selected_format"):
             self.parent.selected_format = format_data  # type: ignore
         if hasattr(self.parent, "start_download"):
